@@ -5,9 +5,9 @@ import csv
 
 
 def run():
+
     name = input("Enter last name of official: ").lower()
     nameURL = name.replace(" ", "%20")
-    nameFile = name.replace(" ", "_")
 
     # Query Name of Committee
     queryUrl = f"https://cf.ncsbe.gov/CFOrgLkup/CommitteeGeneralResult/?name={nameURL}&useOrgName=True&useCandName=True&useInHouseName=True&useAcronym=False"
@@ -96,7 +96,11 @@ def scrapeReports(rid, orgName):
 
 
 def downloadCSV(url, repType, orgName):
-    filename = orgName + "_" + repType + ".csv"
+    folder_name = "data"
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+
+    filename = os.path.join(folder_name, orgName + "_" + repType + ".csv")
 
     try:
         response = requests.get(url)
@@ -118,10 +122,10 @@ def downloadCSV(url, repType, orgName):
                     csv_writer.writerow(row.split(','))
 
                 if start == 1:
-                    print(f"Data written to {csvName}")
+                    print(f"Data {csvName} written to {filename}")
 
                 else:
-                    print(f"Data appended to {csvName}")
+                    print(f"Data {csvName} appended {filename}")
     
         else:
             print(f"Failed to download CSV for {url}")
