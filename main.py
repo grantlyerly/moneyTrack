@@ -1,9 +1,11 @@
 import requests, json
 from bs4 import BeautifulSoup
 import os
+import csv
+
 
 def run():
-    name = input("Enter name of official: ")
+    name = input("Enter last name of official: ").lower()
     nameURL = name.replace(" ", "%20")
     nameFile = name.replace(" ", "_")
 
@@ -12,14 +14,22 @@ def run():
     actives = pullData(queryUrl, "comSearch")
 
     # Select Committee
-    print('')
-    num = 1
-    for com in actives:
-        print(str(num) + ": " + com['OrgName'])
-        num += 1
-    chosen = int(input("\nEnter number of correct committee: "))
+    if len(actives) > 0:
+        print('')
+        num = 1
+        for com in actives:
+            print(str(num) + ": " + com['OrgName'])
+            num += 1
+        chosen = int(input("\nEnter number of correct committee: "))
+    else:
+        print("No committees found")
+        return
 
     committeeData = actives[chosen-1]
+    orgName = str(committeeData['OrgName'])
+    orgName = orgName.replace(" ", "_")
+    for char in ["(", ")",]:
+        orgName= orgName.replace(char, "")
 
     # Collect Relevant Reports
     sid = committeeData['SBoEID']
@@ -30,7 +40,7 @@ def run():
 
     for report in allReports:
         rid = report['DataLink']
-        scrapeReports(rid, nameFile)
+        scrapeReports(rid, orgName)
     
 
 def pullData(url, step):
@@ -66,33 +76,59 @@ def pullData(url, step):
     return ret
 
 
-def scrapeReports(rid, name):
+def scrapeReports(rid, orgName):
 
     for suffix in ['REC', 'EXP']:
         url = f"https://cf.ncsbe.gov/CFOrgLkup/ReportDetail/?RID={rid}&TP=" + suffix
 
-        soup = BeautifulSoup((requests.get(url)).content, 'html.parser').body
-        htmldata = soup.find_all('a')[2]
+        try:
+            response = requests.get(url)
+            if response.status_code ==200:
+                soup = BeautifulSoup((requests.get(url)).content, 'html.parser').body
+                htmldata = soup.find_all('a')[2]
 
-        downloadURL = "https://cf.ncsbe.gov/" + htmldata['href']
-        downloadCSV(downloadURL, name, suffix)
-        
+                downloadURL = "https://cf.ncsbe.gov/" + htmldata['href']
+                downloadCSV(downloadURL, suffix, orgName)
+            else:
+                print(f"Failed to fetch data for {suffix}")
+        except Exception as e:
+            print(f"Error occured: {e}")
 
-def downloadCSV(url, name, repType):
-    filename = name + repType
 
-    if not os.path.exists(filename):   
-        with open(filename, "wb") as f:
-            pass
+def downloadCSV(url, repType, orgName):
+    filename = orgName + "_" + repType + ".csv"
+
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            csvName = response.headers["Content-Disposition"].split('"')[1]
+            content = response.content
+
+            mode = 'a' if os.path.exists(filename) else 'w'
+            
+            with open(filename, mode, newline ='') as f:
+                start = 2
+                if mode == 'w':
+                    start = 1
+            
+                # Read content with CSV reader and write to file
+                csv_data = content.decode('utf-8').splitlines()
+                csv_writer = csv.writer(f)
+                for row in csv_data[start:-1]:
+                    csv_writer.writerow(row.split(','))
+
+                if start == 1:
+                    print(f"Data written to {csvName}")
+
+                else:
+                    print(f"Data appended to {csvName}")
     
-    response = requests.get(url)
-    csvName = response.headers["Content-Disposition"].split('"')[1]
-    content = response.content
-
-    with open(filename, 'wb') as f:
-        print(f"Downloading {csvName}")
-        f.write(content)
-
+        else:
+            print(f"Failed to download CSV for {url}")
+    
+    except Exception as e:
+        print(f"Error downloading {url} CSV: {e}")
+        
 
 if __name__ == '__main__':
     run()
