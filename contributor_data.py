@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import ast
 
 """
 Donor Look up:
@@ -9,7 +10,7 @@ https://www.opensecrets.org/donor-lookup/results? name = NAME &order=desc & sort
 """
 
 
-# Individual Functions
+# Methods for individual contributions
 
 
 def collect_contributions(name, zipCode):
@@ -100,7 +101,70 @@ def impact(name, zipCode):
     return(perc, party, amt)
 
 
+# Methods for federal PACs
+
+"""
+Searching: https://www.opensecrets.org/political-action-committees-pacs/lookup?txt=duke
+<table class="DataTable-Partial dataTable no-footer" data-title="" data-paging="false" data-page-length="0" data-info="false" data-searching="false" data-filtercategories="null" data-filterindexes="null" data-checkboxfilters="null" data-selectfilters="null" data-colorcodeby="" data-uuid="32a58fe4-df75-48ac-9796-fa3d339ef023" 
+data-collection="[{&quot;PAC Name&quot;:&quot;\u003ca href=\&quot;/political-action-committees-pacs/duke-energy/C00083535/summary/2024\&quot;\u003eDuke Energy\u003c/a\u003e&quot;,&quot;Type&quot;:&quot;PAC (#C00083535)&quot;,&quot;Most Recent Cycle Activity&quot;:&quot;2024&quot;},{&quot;PAC Name&quot;:&quot;\u003ca href=\&quot;/political-action-committees-pacs/duke-energy/C00429662/summary/2008\&quot;\u003eDuke Energy\u003c/a\u003e&quot;,&quot;Type&quot;:&quot;PAC (#C00429662)&quot;,&quot;Most Recent Cycle Activity&quot;:&quot;2008&quot;},{&quot;PAC Name&quot;:&quot;\u003ca href=\&quot;/political-action-committees-pacs/duke-energy/C00040907/summary/2000\&quot;\u003eDuke Energy\u003c/a\u003e&quot;,&quot;Type&quot;:&quot;PAC (#C00040907)&quot;,&quot;Most Recent Cycle Activity&quot;:&quot;2000&quot;},{&quot;PAC Name&quot;:&quot;\u003ca href=\&quot;/political-action-committees-pacs/duke-pac/C00814004/summary/2022\&quot;\u003eDuke PAC\u003c/a\u003e&quot;,&quot;Type&quot;:&quot;&quot;,&quot;Most Recent Cycle Activity&quot;:&quot;2022&quot;}]" data-columnwidthlimits="{}" data-disablesearchinput="true" data-presortformat="[]" id="DataTables_Table_0" role="grid">
+                <thead>
+                    <tr role="row"><th class="sorting" tabindex="0" aria-controls="DataTables_Table_0" rowspan="1" colspan="1" aria-label="PAC Name: activate to sort column ascending" style="width: 171.46875px;">PAC Name</th><th class="sorting" tabindex="0" aria-controls="DataTables_Table_0" rowspan="1" colspan="1" aria-label="Type: activate to sort column ascending" style="width: 214.984375px;">Type</th><th class="number-header sorting" tabindex="0" aria-controls="DataTables_Table_0" rowspan="1" colspan="1" aria-label="Most Recent Cycle Activity: activate to sort column ascending" style="width: 279.078125px;">Most Recent Cycle Activity</th></tr>
+                </thead>
+                <tbody>                                            
+                <tr role="row" class="odd">
+                        <td class=" color-category " style="height: 100%; vertical-align: middle;"><a href="/political-action-committees-pacs/duke-energy/C00083535/summary/2024">Duke Energy</a></td>
+                        <td class=" " style="height: 100%; vertical-align: middle;">PAC (#C00083535)</td>
+                        <td class="number " style="height: 100%; vertical-align: middle;">2024</td>
+                    </tr><tr role="row" class="even">
+                        <td class=" color-category " style="height: 100%; vertical-align: middle;"><a href="/political-action-committees-pacs/duke-energy/C00429662/summary/2008">Duke Energy</a></td>
+                        <td class=" " style="height: 100%; vertical-align: middle;">PAC (#C00429662)</td>
+                        <td class="number " style="height: 100%; vertical-align: middle;">2008</td>
+                    </tr><tr role="row" class="odd">
+                        <td class=" color-category " style="height: 100%; vertical-align: middle;"><a href="/political-action-committees-pacs/duke-energy/C00040907/summary/2000">Duke Energy</a></td>
+                        <td class=" " style="height: 100%; vertical-align: middle;">PAC (#C00040907)</td>
+                        <td class="number " style="height: 100%; vertical-align: middle;">2000</td>
+                    </tr><tr role="row" class="even">
+                        <td class=" color-category " style="height: 100%; vertical-align: middle;"><a href="/political-action-committees-pacs/duke-pac/C00814004/summary/2022">Duke PAC</a></td>
+                        <td class=" " style="height: 100%; vertical-align: middle;"></td>
+                        <td class="number " style="height: 100%; vertical-align: middle;">2022</td>
+                    </tr></tbody>
+            </table>
+"""
+
+def PACcontributions(name):
+    namePlus = name.replace('_', '+')
+
+    url = f"https://www.opensecrets.org/political-action-committees-pacs/lookup?txt={namePlus}"
+    res = requests.get(url)
+
+    soup = BeautifulSoup(res.content, 'html.parser')
+    body = soup.body
+
+    table = body.find_all('table')
+    data = table[0].get('data-collection')
+    data = ast.literal_eval(data)
+
+    if len(data == 1):
+        entry = data[0]['PAC Name']
+        # print(test)
+        entries = entry.split('"')
+        # print(splittest)
+        n = entries[2]
+        n_url = entries[1]
+
+        nsplit = n.split('<')
+        n_actual = nsplit[0][1:]
+        
+        print(n_actual)
+        print(n_url)
+    elif len(data < 1):
+        return('No Commmittees found')
+        
+
+    pacURL = f'https://www.opensecrets.org{n_url}'
+
+
 if __name__ == '__main__':
     # name = input("name: ")
     # zipCode = input('zipCode: ')
-    print(impact('buddy bengel', 28562))
+    print(PACcontributions('duke'))
