@@ -8,6 +8,10 @@ https://www.opensecrets.org/donor-lookup/results?name=buddy+bengel&order=desc&so
 https://www.opensecrets.org/donor-lookup/results? name = NAME &order=desc & sort=D & zip = ZIP
 """
 
+
+# Individual Functions
+
+
 def collect_contributions(name, zipCode):
     namePlus = name.replace('_', '+')
 
@@ -89,9 +93,11 @@ def impact(name, zipCode):
 
     perc = max((r/(r+d)), (d/(r+d)))
     party = 'R'
+    amt = r
     if d > r:
         party = 'D'
-    return(perc, party)
+        amt = d
+    return(perc, party, amt)
 
 
 if __name__ == '__main__':

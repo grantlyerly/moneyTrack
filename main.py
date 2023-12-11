@@ -15,12 +15,15 @@ def run():
 
     # Select Committee
     if len(actives) > 0:
-        print('')
-        num = 1
-        for com in actives:
-            print(str(num) + ": " + com['OrgName'])
-            num += 1
-        chosen = int(input("\nEnter number of correct committee: "))
+        if len(actives)==1:
+            chosen = 1
+        else:
+            print('')
+            num = 1
+            for com in actives:
+                print(str(num) + ": " + com['OrgName'])
+                num += 1
+            chosen = int(input("\nEnter number of correct committee: "))
     else:
         print("No committees found")
         return
