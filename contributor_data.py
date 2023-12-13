@@ -77,7 +77,7 @@ def parse_contributions(contribution):
     return amount, target_party
 
 
-def impact(name, zipCode):
+def indv_impact(name, zipCode):
     contrs = collect_contributions(name, zipCode)
     r = 0
     d = 0
@@ -141,30 +141,56 @@ def PACcontributions(name):
     body = soup.body
 
     table = body.find_all('table')
-    data = table[0].get('data-collection')
-    data = ast.literal_eval(data)
 
-    if len(data == 1):
-        entry = data[0]['PAC Name']
-        # print(test)
-        entries = entry.split('"')
-        # print(splittest)
-        n = entries[2]
-        n_url = entries[1]
+    # If OpenSecrets redirects exactly to a PAC, pull URL for that. Should happen when exact pac name is searched
+    if len(table) == 3:
+        data = body.find_all('input', {'name':'utm_source'})
+        dataURL = data[0].get('value')
 
-        nsplit = n.split('<')
-        n_actual = nsplit[0][1:]
-        
-        print(n_actual)
-        print(n_url)
-    elif len(data < 1):
+    else:
         return('No Commmittees found')
-        
 
-    pacURL = f'https://www.opensecrets.org{n_url}'
+    """if len(table) == 1: (Can use if needed for a search that doesn't automatically redirect)
+        data = table[0].get('data-collection')
+        data = ast.literal_eval(data)
 
+        if len(data) >= 1:
+            entry = data[0]['PAC Name']
+            # print(test)
+            entries = entry.split('"')
+            # print(splittest)
+            n = entries[2]
+            n_url = entries[1]
+
+            nsplit = n.split('<')
+            n_actual = nsplit[0][1:]
+            
+            print(n_actual)
+            print(n_url)
+        else:
+            return('No Commmittees found')
+        """
+            
+    pacURL = f'https://www.opensecrets.org{dataURL}'
+
+    res= requests.get(pacURL)
+
+    soup= BeautifulSoup(res.content, 'html.parser')
+    body = soup.body
+
+    tables = body.find_all('table')
+
+    target = tables[1].get('data-collection')
+    lst = ast.literal_eval(target)
+    selected = lst[0]['']
+    selspl = selected.split('<')
+    dem = float(((selspl[5].split('>'))[1])[:-1])
+    rep = float(((selspl[7].split('>'))[1])[:-1])
+
+    ret = {'dem': dem, 'rep': rep}
+    return ret
 
 if __name__ == '__main__':
     # name = input("name: ")
     # zipCode = input('zipCode: ')
-    print(PACcontributions('duke'))
+    print(PACcontributions('atrium'))
