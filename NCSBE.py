@@ -3,8 +3,12 @@ from bs4 import BeautifulSoup
 import os
 import csv
 
+# Relevant functions for grabbing information from NCSBE data collections.
 
 def run():
+    # Runs a search for candidate committee financial reports. Queries input of a name, then searches NCSBE reports to compile the reports into a
+    # receipts and expenditures file in the data folder. Does not currently check for duplicates; implement once database integrated.
+    # Works for both candidate committees and NC-based PACs.
 
     name = input("Enter last name of official: ").lower()
     nameURL = name.replace(" ", "%20")
@@ -28,6 +32,7 @@ def run():
         print("No committees found")
         return
 
+    # Properly reformat organization name to be used in search
     committeeData = actives[chosen-1]
     orgName = str(committeeData['OrgName'])
     orgName = orgName.replace(" ", "_")
@@ -39,20 +44,26 @@ def run():
     ogid = committeeData['OrgGroupID']
     committeeURL = f"https://cf.ncsbe.gov/CFOrgLkup/DocumentGeneralResult/?SID={sid}&OGID={ogid}"
 
+    # Adds all relevant reports to a list to be compiled
     allReports = pullData(committeeURL, 'allReps')
 
+    # Call scrapeReports, which pull the relevant data from receipt and expenditure reports to be downloaded as a CSV
     for report in allReports:
         rid = report['DataLink']
         scrapeReports(rid, orgName)
     
 
 def pullData(url, step):
+    # Creates a list of all the active reports that should be downloaded to CSV.
+
+    # Pull list of relevant reports for the committee
     steps = {'comSearch': 11, 'allReps': 12}
     res = requests.get(url)
 
     soup = BeautifulSoup(res.content, 'html.parser')
     page_body = soup.body
 
+    # Parse webpage to identify the correct data
     scripts = page_body.find_all("script")
     script = scripts[steps[step]]
 
@@ -61,6 +72,7 @@ def pullData(url, step):
     data = splitTxt[8]
     dataStrip = data.strip(" ")
 
+    # Reformate data to be accurately collected
     for i in range(len(dataStrip)):
         if dataStrip[i] == "[":
             index = i
@@ -72,6 +84,7 @@ def pullData(url, step):
     stepParams = {'comSearch': "StatusDesc", 'allReps': "DataType"}
     stepBools = {'comSearch': "ACTIVE (NON-EXEMPT)", 'allReps': "DATA"}
 
+    # For each pulled report, add it to the list if it's Active and has Data
     ret = []
     for i in data_list:
         if i[stepParams[step]] == stepBools[step]:
@@ -80,6 +93,7 @@ def pullData(url, step):
 
 
 def scrapeReports(rid, orgName):
+    #Function that scrapes all mindivudal reports for a committee, receipts and expenditures.
 
     for suffix in ['REC', 'EXP']:
         url = f"https://cf.ncsbe.gov/CFOrgLkup/ReportDetail/?RID={rid}&TP=" + suffix
@@ -90,6 +104,7 @@ def scrapeReports(rid, orgName):
                 soup = BeautifulSoup((requests.get(url)).content, 'html.parser').body
                 htmldata = soup.find_all('a')[2]
 
+                # Download the report as a CSV, add it to aggreated receipts or expenditures CSV
                 downloadURL = "https://cf.ncsbe.gov/" + htmldata['href']
                 downloadCSV(downloadURL, suffix, orgName)
             else:
@@ -99,6 +114,7 @@ def scrapeReports(rid, orgName):
 
 
 def downloadCSV(url, repType, orgName):
+    # Downlaods a chosen report to the relevant csv. URL is report download url, repType is REC or EXP, orgName is committee name.
     folder_name = "data"
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
@@ -135,7 +151,6 @@ def downloadCSV(url, repType, orgName):
     
     except Exception as e:
         print(f"Error downloading {url} CSV: {e}")
-        
 
 if __name__ == '__main__':
     run()

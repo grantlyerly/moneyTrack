@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import ast
 
+# Relevant functions for pulling information from OpenSecrets data stores (thanks guys love your work)
+# Primarily applicable for federal-level committees and individuals.
+
 """
 Donor Look up:
 https://www.opensecrets.org/donor-lookup/results?name=buddy+bengel&order=desc&sort=D&zip=28562
@@ -148,7 +151,7 @@ def PACcontributions(name):
         dataURL = data[0].get('value')
 
     else:
-        return('No Commmittees found')
+        return('No commmittees found.')
 
     """if len(table) == 1: (Can use if needed for a search that doesn't automatically redirect)
         data = table[0].get('data-collection')
@@ -193,4 +196,4 @@ def PACcontributions(name):
 if __name__ == '__main__':
     # name = input("name: ")
     # zipCode = input('zipCode: ')
-    print(PACcontributions('atrium'))
+    print(PACcontributions('charlotte mecklenburg'))
